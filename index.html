@@ -162,6 +162,63 @@ td .nmcell{white-space:normal;min-width:170px;display:block}
 .konfirm b{font-family:var(--display);font-size:15.5px;color:var(--alpha)}
 .konfirm p{margin:0;font-size:13px;color:var(--fg)}
 .konfirm .peringatan{font-weight:600;color:var(--alpha)}
+/* --- halaman masuk --- */
+body.mode-masuk .wrap{grid-template-columns:minmax(0,1fr)}
+body.mode-masuk nav.tabs{display:none}
+.masuk{display:grid;gap:22px;max-width:760px;margin:12px auto 0}
+.masuk-kop{text-align:center}
+.masuk-kop h2{font-size:28px;color:var(--brand-deep)}
+.masuk-kop p{margin:8px 0 0;color:var(--fg-muted);font-size:14px}
+.masuk-pilih{display:grid;gap:14px}
+@media (min-width:720px){.masuk-pilih{grid-template-columns:1fr 1fr}}
+.kartu-peran{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:20px;cursor:pointer;display:grid;gap:7px;box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
+.kartu-peran:hover{border-color:var(--brand);transform:translateY(-2px)}
+.kartu-peran .lencana{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--brand)}
+.kartu-peran b{font-family:var(--display);font-size:19px;color:var(--brand-deep)}
+.kartu-peran small{color:var(--fg-muted);font-size:13px;line-height:1.55}
+.masuk-kotak{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;
+  box-shadow:var(--shadow);display:grid;gap:14px;max-width:440px;margin:0 auto;width:100%}
+.masuk-kotak h2{font-size:21px;color:var(--brand-deep)}
+.masuk-kotak .note{margin:-6px 0 0}
+.masuk-salah{margin:0;font-size:13px;font-weight:600;color:var(--alpha);background:var(--alpha-bg);
+  padding:9px 12px;border-radius:9px}
+nav.rail button.keluar,nav.tabs button.keluar{color:var(--fg-muted)}
+nav.rail button.keluar{margin-top:6px;border-top:1px solid var(--line);border-radius:0 0 8px 8px}
+
+/* --- foto --- */
+.foto-aksi{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.foto-aksi .note{margin-left:4px}
+.foto-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-top:14px}
+.foto-grid.besar{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+.foto{margin:0;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.foto img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--surface-2)}
+.foto figcaption{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 9px;
+  font-size:11.5px;color:var(--fg-muted);min-height:30px}
+.foto figcaption b{display:block;color:var(--fg);font-size:12.5px;font-weight:600}
+.foto figcaption span{display:block}
+.foto-hapus{flex:none;border:0;background:transparent;color:var(--alpha);font-size:17px;line-height:1;
+  cursor:pointer;padding:2px 5px;border-radius:6px}
+.foto-hapus:hover{background:var(--alpha-bg)}
+
+/* --- selesai & terima kasih --- */
+.selesai-blok{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);
+  display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.selesai-blok b{font-family:var(--display);font-size:16px;color:var(--brand-deep)}
+.selesai-blok .note{margin:3px 0 0;max-width:46ch}
+.selesai-blok .btn{margin-left:auto}
+.btn.besar{padding:12px 22px;font-size:15px}
+.terima{text-align:center;padding:34px 20px;display:grid;gap:14px;justify-items:center}
+.terima-ikon{color:var(--ok);width:68px;height:68px}
+.terima-ikon svg{width:100%;height:100%}
+.terima h2{font-size:30px;color:var(--brand-deep)}
+.terima-ayat{margin:0;font-size:15px;color:var(--ok);font-weight:600}
+.terima-sub{margin:0;font-size:14px;color:var(--fg-muted);line-height:1.6}
+.terima-angka{display:grid;grid-template-columns:repeat(4,minmax(62px,88px));gap:10px;margin-top:4px}
+.terima-angka div{background:var(--surface-2);border-radius:10px;padding:11px 6px}
+.terima-angka b{display:block;font-family:var(--display);font-size:23px;color:var(--brand-deep)}
+.terima-angka span{font-size:11.5px;color:var(--fg-muted)}
+.terima-catatan{margin:0;font-size:12.5px;color:var(--fg-muted);max-width:52ch}
 .srch{position:relative}
 .people{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
 .person{text-align:left;background:var(--surface-2);border:1px solid transparent;border-radius:10px;padding:10px 12px;cursor:pointer}
@@ -204,12 +261,14 @@ td .nmcell{white-space:normal;min-width:170px;display:block}
    ==================================================================== */
 const CONFIG = {
   API_URL:   "https://script.google.com/macros/s/AKfycbyj3wEX9h-aJwZy-pkxve0bsZpxvH_-jJi30XbTAbNc53IFR9vnhTFXuIJ_agDaLHMe/exec",
-  API_TOKEN: "smpia51-angsa-biru-2026"
+  API_TOKEN: "smpia51-angsa-biru-2026",
+  // Kode yang diminta saat seseorang memilih "Masuk sebagai Admin".
+  ADMIN_CODE: "smpia51"
 };
 </script>
 <!-- Naikkan angka v= setiap kali app.js diubah, supaya browser pembina
      mengambil versi baru dan tidak memakai salinan lama. -->
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 
 </body>
 </html>

@@ -11,6 +11,25 @@ let MURID=new Map(), KEL=new Map(), KELAS=[], EKSKUL_ALL=[];
 let seedSesi=new Map(), seedPres=new Map();
 const dbSesi=new Map(), dbPres=new Map();
 let canWrite=null;
+let FOTO=[];
+
+/* ---------- peran ---------- */
+const PERAN_KEY="ekskul.peran.v2";
+let PERAN=null, NAMA_PETUGAS="";
+function muatPeran(){
+  try{ const r=JSON.parse(localStorage.getItem(PERAN_KEY)||"null");
+       if(r && (r.peran==="admin"||r.peran==="pendamping")){ PERAN=r.peran; NAMA_PETUGAS=r.nama||""; } }
+  catch(e){}
+}
+function simpanPeran(){
+  try{ localStorage.setItem(PERAN_KEY, JSON.stringify({peran:PERAN,nama:NAMA_PETUGAS})); }catch(e){}
+}
+function keluarPeran(){
+  PERAN=null; NAMA_PETUGAS="";
+  try{ localStorage.removeItem(PERAN_KEY); }catch(e){}
+  layarMasuk();
+}
+function bolehTab(k){ return PERAN==="admin" ? true : (k==="presensi"||k==="pantauan"); }
 
 function pasangData(d){
   DATA=d;
@@ -25,6 +44,7 @@ function pasangData(d){
     if(!seedPres.has(r.sesiId)) seedPres.set(r.sesiId,new Map());
     seedPres.get(r.sesiId).set(r.muridId,{s:r.status,c:r.catatan||""});
   });
+  FOTO = Array.isArray(DATA.foto) ? DATA.foto : [];
   dbSesi.clear(); dbPres.clear();
 }
 
@@ -60,13 +80,87 @@ const TABS = [
 let tab = "ringkasan";
 function icon(p){ return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+p+'</svg>'; }
 function renderNav(){
-  const html = TABS.map(([k,l,p])=>`<button data-tab="${k}" aria-current="${k===tab}">${icon(p)}<span>${l}</span></button>`).join("");
+  const daftar = TABS.filter(([k])=>bolehTab(k));
+  if(!daftar.some(([k])=>k===tab)) tab = daftar[0][0];
+  const html = daftar.map(([k,l,p])=>`<button data-tab="${k}" aria-current="${k===tab}">${icon(p)}<span>${l}</span></button>`).join("")
+    + `<button data-keluar="1" class="keluar">${icon('<path d="M10 4H5v16h5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 8l4 4-4 4M19 12H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>')}<span>Keluar</span></button>`;
   $("#rail").innerHTML=html; $("#tabs").innerHTML=html;
-  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; render(); window.scrollTo({top:0}); });
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; pState.selesai=null; render(); window.scrollTo({top:0}); });
+  document.querySelectorAll("[data-keluar]").forEach(b=>b.onclick=keluarPeran);
 }
 function toast(msg){
   const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t);
   setTimeout(()=>t.remove(),1900);
+}
+
+/* ---------- halaman masuk ---------- */
+let masukMode=null, masukPesan="";
+function layarMasuk(){
+  document.body.classList.add("mode-masuk");
+  $("#rail").innerHTML=""; $("#tabs").innerHTML="";
+  const m = $("#main");
+  if(masukMode===null){
+    m.innerHTML = `<section class="masuk">
+      <div class="masuk-kop">
+        <h2>Assalamu'alaikum</h2>
+        <p>Pilih cara masuk untuk mencatat atau memantau kegiatan ekstrakurikuler.</p>
+      </div>
+      <div class="masuk-pilih">
+        <button class="kartu-peran" data-mode="pendamping">
+          <span class="lencana">Pembina &amp; pendamping</span>
+          <b>Masuk sebagai Pendamping</b>
+          <small>Mencatat presensi, menulis catatan pendampingan, mengunggah dokumentasi, dan memantau kehadiran.</small>
+        </button>
+        <button class="kartu-peran" data-mode="admin">
+          <span class="lencana">Kesiswaan</span>
+          <b>Masuk sebagai Admin</b>
+          <small>Seluruh fitur Pendamping, ditambah ringkasan sekolah dan data murid. Perlu kode masuk.</small>
+        </button>
+      </div>
+    </section>`;
+  } else if(masukMode==="pendamping"){
+    m.innerHTML = `<section class="masuk"><div class="masuk-kotak">
+      <button class="bk" id="mk-balik">&larr; Pilih ulang</button>
+      <h2>Masuk sebagai Pendamping</h2>
+      <p class="note">Nama ini dicatat sebagai penanggung jawab presensi yang Anda isi.</p>
+      <div class="field"><label for="mk-nama">Nama pendamping</label>
+        <input type="text" id="mk-nama" value="${esc(NAMA_PETUGAS)}" placeholder="Misal: Ustadz Rudy" autocomplete="name"></div>
+      ${masukPesan?`<p class="masuk-salah">${esc(masukPesan)}</p>`:""}
+      <button class="btn" id="mk-ok">Masuk</button>
+    </div></section>`;
+  } else {
+    m.innerHTML = `<section class="masuk"><div class="masuk-kotak">
+      <button class="bk" id="mk-balik">&larr; Pilih ulang</button>
+      <h2>Masuk sebagai Admin</h2>
+      <p class="note">Masukkan kode yang diberikan tim Kesiswaan.</p>
+      <div class="field"><label for="mk-nama">Nama</label>
+        <input type="text" id="mk-nama" value="${esc(NAMA_PETUGAS)}" placeholder="Nama Anda" autocomplete="name"></div>
+      <div class="field"><label for="mk-kode">Kode masuk</label>
+        <input type="password" id="mk-kode" placeholder="Kode admin" autocomplete="current-password"></div>
+      ${masukPesan?`<p class="masuk-salah">${esc(masukPesan)}</p>`:""}
+      <button class="btn" id="mk-ok">Masuk</button>
+    </div></section>`;
+  }
+  ikatMasuk();
+}
+function ikatMasuk(){
+  document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{ masukMode=b.dataset.mode; masukPesan=""; layarMasuk(); });
+  on("#mk-balik","click",()=>{ masukMode=null; masukPesan=""; layarMasuk(); });
+  const kirim=()=>{
+    const nama=($("#mk-nama")?$("#mk-nama").value:"").trim();
+    if(!nama){ masukPesan="Nama belum diisi."; layarMasuk(); return; }
+    if(masukMode==="admin"){
+      const kode=($("#mk-kode")?$("#mk-kode").value:"").trim();
+      if(kode!==CONFIG.ADMIN_CODE){ masukPesan="Kode masuk tidak cocok. Coba lagi atau tanyakan ke tim Kesiswaan."; layarMasuk(); return; }
+    }
+    PERAN=masukMode; NAMA_PETUGAS=nama; simpanPeran(); setPencatat(nama);
+    document.body.classList.remove("mode-masuk");
+    tab = PERAN==="admin" ? "ringkasan" : "presensi";
+    masukMode=null; masukPesan="";
+    mulai();
+  };
+  on("#mk-ok","click",kirim);
+  ["#mk-nama","#mk-kode"].forEach(sel=>on(sel,"keydown",e=>{ if(e.key==="Enter") kirim(); }));
 }
 
 /* ---------- stats ---------- */
@@ -171,7 +265,7 @@ function barRow(name,t){
 function emptyBox(b,p){ return `<div class="empty"><b>${esc(b)}</b>${esc(p)}</div>`; }
 
 /* ---------- PRESENSI ---------- */
-let pState = {program:"daily", groupId:null, sesiId:null, baru:false, konfirmHapus:false, catatanMurid:null};
+let pState = {program:"daily", groupId:null, sesiId:null, baru:false, konfirmHapus:false, catatanMurid:null, selesai:null, adaGagal:false};
 function viewPresensi(){
   const groups = DATA.kelompok.filter(g=>g.program===pState.program);
   if(!pState.groupId || !KEL.get(pState.groupId) || KEL.get(pState.groupId).program!==pState.program){
@@ -181,6 +275,8 @@ function viewPresensi(){
   const ss = sesiOfGroup(g.id);
   if(pState.sesiId && !allSesi().has(pState.sesiId)) pState.sesiId=null;
   if(!pState.sesiId && ss.length) pState.sesiId = ss[ss.length-1].id;
+
+  if(pState.selesai) return layarSelesai();
 
   let body;
   if(pState.baru){ body = formPertemuan(g); }
@@ -202,6 +298,33 @@ function viewPresensi(){
     </div>
   </div></section>
   <section class="card">${body}</section>`;
+}
+
+function layarSelesai(){
+  const r = pState.selesai;
+  return `<section class="card terima">
+    <div class="terima-ikon" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="none" stroke="currentColor" stroke-width="3" opacity=".3"/>
+        <path d="M19 33l9.5 9.5L45 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h2>Barakallahu fiikum</h2>
+    <p class="terima-ayat">Jazakumullahu khairan atas pendampingannya hari ini.</p>
+    <p class="terima-sub">Presensi <b>${esc(r.ekskul)}</b> &mdash; ${esc(r.kelompok)}<br>${esc(r.tanggal)} sudah tersimpan di spreadsheet sekolah.</p>
+    ${r.gagal?`<div class="flag" style="justify-content:center">⚑ Sebagian data gagal terkirim. Periksa jaringan, lalu buka lagi pertemuan ini untuk memastikan.</div>`:""}
+    <div class="terima-angka">
+      <div><b>${r.hadir}</b><span>Hadir</span></div>
+      <div><b>${r.izin}</b><span>Izin</span></div>
+      <div><b>${r.sakit}</b><span>Sakit</span></div>
+      <div><b>${r.alpha}</b><span>Alpa</span></div>
+    </div>
+    <p class="terima-catatan">${r.belum?`${r.belum} murid belum diisi statusnya.`:"Seluruh murid sudah diisi."}
+      ${r.foto?` &middot; ${r.foto} foto dokumentasi terunggah.`:" &middot; Belum ada foto dokumentasi."}
+      ${r.catatan?` &middot; ${r.catatan} catatan pendampingan.`:""}</p>
+    <div class="row" style="justify-content:center">
+      <button class="btn" id="ts-lagi">Catat pertemuan lain</button>
+      <button class="btn ghost" id="ts-pantau">Lihat pantauan</button>
+    </div>
+  </section>`;
 }
 
 function formPertemuan(g){
@@ -295,6 +418,14 @@ function panelPresensi(g, s){
           ${ro?"":`<button class="btn ghost bahaya" data-hapus-catatan="${c.m.id}">Hapus</button>`}
         </div>`).join("")}
     </div>`:""}
+
+    ${ro?"":`<div class="selesai-blok">
+      <div>
+        <b>Sudah selesai mencatat?</b>
+        <p class="note">Presensi tersimpan otomatis setiap kali Anda menekan H/I/S/A. Tombol ini untuk mengakhiri dan melihat ringkasannya.</p>
+      </div>
+      <button class="btn besar" id="pz-selesai">Simpan &amp; selesai</button>
+    </div>`}
   </div>`;
 }
 
@@ -314,6 +445,17 @@ function viewPantauan(){
   const tot = tally(rs.map(r=>({s:r.status})));
   const catatan = rs.filter(r=>r.catatan).sort((a,b)=> (a.sesi.tanggal||"")<(b.sesi.tanggal||"")?1:-1).slice(0,25);
   const bulanOpts=[...new Set([...allSesi().values()].map(s=>s.bulan))].sort((a,b)=>a-b);
+
+  const sm=allSesi();
+  const fotoTampil = FOTO.map(f=>{
+      const s=sm.get(f.sesiId); if(!s) return null;
+      const g=KEL.get(s.groupId)||{};
+      return {...f, sesi:s, ekskul:sesiEkskul(s), kelompok:g.judul||"", tanggal:sesiLabel(s)};
+    }).filter(Boolean)
+    .filter(f=>(!fState.program || f.sesi.program===fState.program))
+    .filter(f=>(!fState.bulan   || String(f.sesi.bulan)===String(fState.bulan)))
+    .filter(f=>(!fState.ekskul  || f.ekskul===fState.ekskul))
+    .sort((a,b)=> String(b.waktu||"").localeCompare(String(a.waktu||"")));
 
   return `
   <section class="card">
@@ -364,6 +506,20 @@ function viewPantauan(){
         <td class="num"${x.t.alpha?' style="color:var(--alpha);font-weight:700"':''}>${x.t.alpha}</td>
         <td class="num"><b>${x.t.rate}%</b></td></tr>`).join("")}
     </tbody></table></div>`: emptyBox("Tidak ada data yang cocok","Longgarkan salah satu saringan di atas.")}
+  </section>
+
+  <section class="card">
+    <div class="card-h"><h2>Dokumentasi kegiatan</h2>
+      <span class="sub">${fotoTampil.length} foto${fState.bulan?" pada "+BULAN[fState.bulan]:" pada semua bulan"}</span></div>
+    <div class="card-b">
+      ${fotoTampil.length?`<div class="foto-grid besar">${fotoTampil.map(f=>`
+        <figure class="foto">
+          <a href="https://drive.google.com/file/d/${esc(f.fileId)}/view" target="_blank" rel="noopener">
+            <img src="${esc(f.url)}" alt="Dokumentasi ${esc(f.ekskul)}" loading="lazy"></a>
+          <figcaption><b>${esc(f.ekskul)}</b><span>${esc(f.tanggal)}${f.oleh?" · "+esc(f.oleh):""}</span></figcaption>
+        </figure>`).join("")}</div>`
+        : emptyBox("Belum ada dokumentasi pada saringan ini","Foto yang diunggah pendamping saat mengisi presensi akan muncul di sini.")}
+    </div>
   </section>
 
   <section class="card">
@@ -441,6 +597,7 @@ function renderSafe(){
 document.addEventListener("focusout",()=>{ if(pendingRender) setTimeout(()=>{ const a=document.activeElement;
   if(pendingRender && !(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"))){ pendingRender=false; render(); } },120); });
 function render(){
+  if(!PERAN){ layarMasuk(); return; }
   pendingRender=false;
   renderNav();
   const main=$("#main");
@@ -464,6 +621,13 @@ function bind(){
   on("#nb-ok","click",buatPertemuan);
   on("#pz-all","click",()=>massal("hadir"));
   on("#pz-clear","click",()=>massal(""));
+  on("#pz-selesai","click",selesaiPresensi);
+  on("#ts-lagi","click",()=>{ pState.selesai=null; pState.baru=true; render(); window.scrollTo({top:0}); });
+  on("#ts-pantau","click",()=>{ pState.selesai=null; tab="pantauan"; render(); window.scrollTo({top:0}); });
+  ["#fo-kamera","#fo-galeri"].forEach(sel=>on(sel,"change",e=>unggahFoto(e.target.files)));
+  document.querySelectorAll("[data-hapus-foto]").forEach(b=>{
+    b.addEventListener("click",()=>hapusFoto(b.dataset.hapusFoto));
+  });
   on("#pz-del","click",()=>{ pState.konfirmHapus=true; render(); });
   on("#pz-del-batal","click",()=>{ pState.konfirmHapus=false; render(); });
   on("#pz-del-ya","click",hapusPertemuan);
@@ -534,7 +698,7 @@ async function tulisMurid(mid, status, catatan){
   try{
     await api("POST","simpanPresensi",{sesiId:sid, oleh:pencatat(), entri:[{muridId:mid,status:body.s,catatan:body.c}]});
     jadwalSegar(4000);
-  }catch(err){ toast("Gagal menyimpan: "+err.message); }
+  }catch(err){ pState.adaGagal=true; toast("Gagal menyimpan: "+err.message); }
 }
 
 async function massal(status){
@@ -548,7 +712,7 @@ async function massal(status){
     await api("POST","simpanPresensi",{sesiId:sid, oleh:pencatat(), entri:entri});
     toast(status?"Semua ditandai hadir":"Presensi dikosongkan");
     jadwalSegar(4000);
-  }catch(err){ toast("Gagal menyimpan: "+err.message); }
+  }catch(err){ pState.adaGagal=true; toast("Gagal menyimpan: "+err.message); }
 }
 
 async function tulisSesi(sid, patch){
@@ -557,6 +721,74 @@ async function tulisSesi(sid, patch){
   const next=Object.assign({},cur,patch); dbSesi.set(sid,next);
   try{ await api("POST","simpanSesi",Object.assign({id:sid},patch)); }
   catch(err){ toast("Catatan belum tersimpan: "+err.message); }
+}
+
+function selesaiPresensi(){
+  const sid=pState.sesiId; if(!sid) return;
+  const s=allSesi().get(sid), g=KEL.get(pState.groupId), ang=anggotaOf(g.id), pres=presOf(sid);
+  const t=tally(ang.map(m=>pres.get(m.id)).filter(Boolean));
+  pState.selesai = {
+    ekskul: sesiEkskul(s), kelompok: g.judul, tanggal: sesiLabel(s),
+    hadir:t.hadir, izin:t.izin, sakit:t.sakit, alpha:t.alpha,
+    belum: ang.length - t.total,
+    foto: FOTO.filter(f=>f.sesiId===sid).length,
+    catatan: ang.filter(m=>(pres.get(m.id)||{}).c).length,
+    gagal: !!pState.adaGagal
+  };
+  pState.adaGagal=false;
+  render(); window.scrollTo({top:0});
+}
+
+/* Memperkecil foto sebelum dikirim: sisi terpanjang 1400px, JPEG mutu 0.72.
+   Foto ponsel 4 MB menyusut ke ratusan KB, cukup untuk dokumentasi dan ringan diunggah. */
+function kecilkanFoto(file){
+  return new Promise((selesai,gagal)=>{
+    const baca=new FileReader();
+    baca.onerror=()=>gagal(new Error("Gambar tidak terbaca"));
+    baca.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>gagal(new Error("Format gambar tidak didukung"));
+      img.onload=()=>{
+        const maks=1400;
+        let {width:w,height:h}=img;
+        if(Math.max(w,h)>maks){ const r=maks/Math.max(w,h); w=Math.round(w*r); h=Math.round(h*r); }
+        const c=document.createElement("canvas"); c.width=w; c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        const url=c.toDataURL("image/jpeg",0.72);
+        selesai({data:url.split(",")[1], mime:"image/jpeg"});
+      };
+      img.src=baca.result;
+    };
+    baca.readAsDataURL(file);
+  });
+}
+
+async function unggahFoto(files){
+  const sid=pState.sesiId; if(!sid||!files||!files.length) return;
+  const daftar=[...files].filter(f=>f.type.indexOf("image/")===0);
+  if(!daftar.length){ toast("Hanya berkas gambar yang bisa diunggah"); return; }
+  const st=$("#fo-status");
+  for(let i=0;i<daftar.length;i++){
+    if(st) st.textContent=`Mengunggah ${i+1} dari ${daftar.length}…`;
+    try{
+      const kecil=await kecilkanFoto(daftar[i]);
+      const j=await api("POST","simpanFoto",{sesiId:sid, nama:daftar[i].name||("dokumentasi-"+Date.now()+".jpg"),
+        mime:kecil.mime, data:kecil.data, oleh:NAMA_PETUGAS});
+      if(j.foto) FOTO.push(j.foto);
+    }catch(err){
+      pState.adaGagal=true;
+      toast("Foto gagal diunggah: "+err.message);
+      break;
+    }
+  }
+  render(); jadwalSegar(4000);
+}
+
+async function hapusFoto(id){
+  const simpan=FOTO.find(f=>f.id===id);
+  FOTO=FOTO.filter(f=>f.id!==id); render();
+  try{ await api("POST","hapusFoto",{id:id}); toast("Foto dihapus"); jadwalSegar(3000); }
+  catch(err){ if(simpan) FOTO.push(simpan); toast("Gagal menghapus foto: "+err.message); render(); }
 }
 
 async function hapusPertemuan(){
@@ -654,7 +886,10 @@ function layarGagal(pesan){
 }
 
 async function mulai(){
-  clock(); renderNav();
+  clock();
+  if(!PERAN){ layarMasuk(); return; }
+  document.body.classList.remove("mode-masuk");
+  renderNav();
   const c = ambilCache();
   if(c){ pasangData(c.d); render(); bar("Data tersimpan "+usia(c.t)+" · memperbarui…","kerja"); }
   else { layarMuat("Memuat data ekskul…"); }
@@ -677,5 +912,6 @@ async function segarkan(){
 setInterval(()=>{ if(!document.hidden && !pendingRender) segarkan(); }, 180000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) jadwalSegar(500); });
 
+muatPeran();
 mulai();
 })();
