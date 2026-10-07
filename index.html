@@ -165,26 +165,30 @@ td .nmcell{white-space:normal;min-width:170px;display:block}
 /* --- halaman masuk --- */
 body.mode-masuk .wrap{grid-template-columns:minmax(0,1fr)}
 body.mode-masuk nav.tabs{display:none}
-.masuk{display:grid;gap:22px;max-width:760px;margin:12px auto 0}
+.masuk{display:grid;gap:26px;max-width:520px;margin:26px auto 0}
 .masuk-kop{text-align:center}
-.masuk-kop h2{font-size:28px;color:var(--brand-deep)}
-.masuk-kop p{margin:8px 0 0;color:var(--fg-muted);font-size:14px}
-.masuk-pilih{display:grid;gap:14px}
-@media (min-width:720px){.masuk-pilih{grid-template-columns:1fr 1fr}}
+.masuk-kop h2{font-size:27px;color:var(--brand-deep)}
+.masuk-kop p{margin:6px 0 0;color:var(--fg-muted);font-size:13.5px}
+.masuk-pilih{display:grid;gap:12px}
 .kartu-peran{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
-  padding:20px;cursor:pointer;display:grid;gap:7px;box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
-.kartu-peran:hover{border-color:var(--brand);transform:translateY(-2px)}
-.kartu-peran .lencana{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--brand)}
-.kartu-peran b{font-family:var(--display);font-size:19px;color:var(--brand-deep)}
-.kartu-peran small{color:var(--fg-muted);font-size:13px;line-height:1.55}
+  padding:16px 18px;cursor:pointer;display:grid;gap:3px;box-shadow:var(--shadow);transition:border-color .15s}
+.kartu-peran:hover{border-color:var(--brand)}
+.kartu-peran.utama{border-color:var(--brand);border-width:1.5px}
+.kartu-peran b{font-family:var(--display);font-size:18px;color:var(--brand-deep)}
+.kartu-peran small{color:var(--fg-muted);font-size:12.5px}
 .masuk-kotak{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;
-  box-shadow:var(--shadow);display:grid;gap:14px;max-width:440px;margin:0 auto;width:100%}
-.masuk-kotak h2{font-size:21px;color:var(--brand-deep)}
-.masuk-kotak .note{margin:-6px 0 0}
+  box-shadow:var(--shadow);display:grid;gap:14px;margin:0 auto;width:100%}
+.masuk-kotak h2{font-size:20px;color:var(--brand-deep)}
 .masuk-salah{margin:0;font-size:13px;font-weight:600;color:var(--alpha);background:var(--alpha-bg);
   padding:9px 12px;border-radius:9px}
 nav.rail button.keluar,nav.tabs button.keluar{color:var(--fg-muted)}
 nav.rail button.keluar{margin-top:6px;border-top:1px solid var(--line);border-radius:0 0 8px 8px}
+
+/* --- zona hapus, sengaja di paling bawah dan tidak menonjol --- */
+.zona-bahaya{padding:14px 16px 18px;border-top:1px solid var(--line);background:var(--surface-2)}
+.tautan-bahaya{background:none;border:0;color:var(--fg-muted);font-size:12.5px;font-weight:600;
+  cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+.tautan-bahaya:hover{color:var(--alpha)}
 
 /* --- foto --- */
 .foto-aksi{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -268,7 +272,7 @@ const CONFIG = {
 </script>
 <!-- Naikkan angka v= setiap kali app.js diubah, supaya browser pembina
      mengambil versi baru dan tidak memakai salinan lama. -->
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 
 </body>
 </html>
