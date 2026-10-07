@@ -215,7 +215,6 @@ function formPertemuan(g){
       <div class="field"><label for="nb-pem">Pembina / pendamping</label><input type="text" id="nb-pem" placeholder="Nama pembina"></div>
     </div>
     <div class="row"><button class="btn" id="nb-ok">Buat pertemuan</button><button class="btn ghost" id="nb-cancel">Batal</button></div>
-    ${db?"":'<div class="hint">Penyimpanan bersama belum aktif di tampilan ini, jadi pertemuan baru belum bisa disimpan.</div>'}
   </div>`;
 }
 
@@ -490,6 +489,7 @@ async function tulisMurid(mid, status, catatan){
   if(status!==undefined) render();
   try{
     await api("POST","simpanPresensi",{sesiId:sid, oleh:pencatat(), entri:[{muridId:mid,status:body.s,catatan:body.c}]});
+    jadwalSegar(4000);
   }catch(err){ toast("Gagal menyimpan: "+err.message); }
 }
 
@@ -503,6 +503,7 @@ async function massal(status){
   try{
     await api("POST","simpanPresensi",{sesiId:sid, oleh:pencatat(), entri:entri});
     toast(status?"Semua ditandai hadir":"Presensi dikosongkan");
+    jadwalSegar(4000);
   }catch(err){ toast("Gagal menyimpan: "+err.message); }
 }
 
@@ -526,7 +527,7 @@ async function buatPertemuan(){
   const s={id,groupId:g.id,program:g.program,ekskul:ek,bulan,urut:99,tanggal:tgl,label:tgl,sumber:"web",
            pembina,materi:"",kendala:"",tindakLanjut:""};
   dbSesi.set(id,s); pState.sesiId=id; pState.baru=false; render();
-  try{ await api("POST","simpanSesi",s); toast("Pertemuan dibuat"); }
+  try{ await api("POST","simpanSesi",s); toast("Pertemuan dibuat"); jadwalSegar(4000); }
   catch(err){ dbSesi.delete(id); toast("Gagal membuat pertemuan: "+err.message); render(); }
 }
 
@@ -552,10 +553,35 @@ async function unduhCSV(){
 
 /* ---------- boot ---------- */
 const seenPres=new Set();
+const CACHE_KEY="ekskul.cache.v1";
+
 function clock(){ const el=$("#clock"); if(el) el.textContent=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"}); }
 
+function simpanCache(d){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(), d:d})); }catch(e){} }
+function ambilCache(){
+  try{ const r=localStorage.getItem(CACHE_KEY); if(!r) return null;
+       const o=JSON.parse(r); return (o && o.d && o.d.murid) ? o : null; }
+  catch(e){ return null; }
+}
+function usia(ms){
+  const m=Math.round((Date.now()-ms)/60000);
+  if(m<1) return "baru saja"; if(m<60) return m+" menit lalu";
+  const j=Math.round(m/60); return j<24 ? j+" jam lalu" : Math.round(j/24)+" hari lalu";
+}
+
+let barTimer=null;
+function bar(teks, jenis){
+  const el=$("#sync"); if(!el) return;
+  el.className = "syncbar" + (jenis?" "+jenis:"");
+  el.textContent = teks;
+  el.hidden = false;
+  clearTimeout(barTimer);
+  if(jenis!=="kerja") barTimer=setTimeout(()=>{ el.hidden=true; }, 4000);
+}
+function barTutup(){ const el=$("#sync"); if(el) el.hidden=true; clearTimeout(barTimer); }
+
 function layarMuat(pesan){
-  $("#main").innerHTML = `<section class="card"><div class="empty"><b>${esc(pesan)}</b>Mengambil data dari spreadsheet sekolah.</div></section>`;
+  $("#main").innerHTML = `<section class="card"><div class="empty"><b>${esc(pesan)}</b>Mengambil data dari spreadsheet sekolah. Pertama kali biasanya butuh beberapa detik.</div></section>`;
 }
 function layarGagal(pesan){
   $("#main").innerHTML = `<section class="card"><div class="empty"><b>Data belum bisa dimuat</b>${esc(pesan)}</div>
@@ -564,18 +590,28 @@ function layarGagal(pesan){
 }
 
 async function mulai(){
-  clock(); renderNav(); layarMuat("Memuat data ekskul…");
+  clock(); renderNav();
+  const c = ambilCache();
+  if(c){ pasangData(c.d); render(); bar("Data tersimpan "+usia(c.t)+" · memperbarui…","kerja"); }
+  else { layarMuat("Memuat data ekskul…"); }
   try{
     const d = await api("GET");
-    pasangData(d);
-    render();
+    pasangData(d); simpanCache(d); render();
+    if(c) bar("Data terbaru","baik"); else barTutup();
   }catch(err){
-    layarGagal(String(err && err.message || err));
+    if(c) bar("Gagal memperbarui — yang tampil data tersimpan","buruk");
+    else layarGagal(String(err && err.message || err));
   }
 }
-mulai();
-setInterval(()=>{ if(!document.hidden && !pendingRender) segarkan(); }, 60000);
+
+let segarTimer=null;
+function jadwalSegar(ms){ clearTimeout(segarTimer); segarTimer=setTimeout(segarkan, ms||2500); }
 async function segarkan(){
-  try{ const d = await api("GET"); pasangData(d); renderSafe(); }catch(e){}
+  if(document.hidden) return;
+  try{ const d = await api("GET"); pasangData(d); simpanCache(d); renderSafe(); }catch(e){}
 }
+setInterval(()=>{ if(!document.hidden && !pendingRender) segarkan(); }, 180000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) jadwalSegar(500); });
+
+mulai();
 })();
