@@ -19,11 +19,11 @@
 const KONFIG = {
   // Kata sandi bersama antara situs dan backend. GANTI dengan teks acak Anda sendiri,
   // lalu salin nilai yang sama ke API_TOKEN di app.js.
-  TOKEN: 'ganti-dengan-kata-sandi-acak-anda',
+  TOKEN: 'smpia51-angsa-biru-2026',
 
   // URL berkas seed.json di GitHub Pages, dipakai sekali saja oleh setup().
-  // Contoh: https://aaiibs.github.io/ekskul/data/seed.json
-  SEED_URL: 'https://aaiibs.github.io/ekskul/data/seed.json',
+  // Contoh: https://aaiibs.github.io/ekskulSMPIA51/data/seed.json
+  SEED_URL: 'https://aaiibs.github.io/ekskulSMPIA51/data/seed.json',
 
   // ID spreadsheet lama SETELAH dikonversi ke Google Sheets (bukan .xlsx).
   // Dipakai oleh sinkronKeFormatLama(). Kosongkan kalau belum siap.

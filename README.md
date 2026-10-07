@@ -26,11 +26,11 @@ Pembina  →  GitHub Pages (index.html + app.js)
 
 ### 1. Unggah repo dan nyalakan Pages
 
-Buat repo `ekskul` di organisasi GitHub AAIIBS, unggah isi folder ini, lalu
+Buat repo `ekskulSMPIA51` di organisasi GitHub AAIIBS, unggah isi folder ini, lalu
 **Settings → Pages → Source: Deploy from a branch → `main` / `(root)`**.
-Alamatnya akan menjadi `https://aaiibs.github.io/ekskul/`.
+Alamatnya akan menjadi `https://aaiibs.github.io/ekskulSMPIA51/`.
 
-Pastikan `data/seed.json` bisa dibuka di `https://aaiibs.github.io/ekskul/data/seed.json`
+Pastikan `data/seed.json` bisa dibuka di `https://aaiibs.github.io/ekskulSMPIA51/data/seed.json`
 sebelum melangkah ke nomor 3.
 
 ### 2. Buat spreadsheet basis data
