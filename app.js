@@ -85,7 +85,12 @@ function renderNav(){
   const html = daftar.map(([k,l,p])=>`<button data-tab="${k}" aria-current="${k===tab}">${icon(p)}<span>${l}</span></button>`).join("")
     + `<button data-keluar="1" class="keluar">${icon('<path d="M10 4H5v16h5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 8l4 4-4 4M19 12H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>')}<span>Keluar</span></button>`;
   $("#rail").innerHTML=html; $("#tabs").innerHTML=html;
-  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; pState.selesai=null; render(); window.scrollTo({top:0}); });
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{
+    tab=b.dataset.tab;
+    // halaman Presensi selalu dibuka bersih, tidak meneruskan pertemuan yang tadi dibuka
+    pState.selesai=null; pState.sesiId=null; pState.baru=false; pState.konfirmHapus=false;
+    render(); window.scrollTo({top:0});
+  });
   document.querySelectorAll("[data-keluar]").forEach(b=>b.onclick=keluarPeran);
 }
 function toast(msg){
@@ -261,13 +266,16 @@ function viewPresensi(){
   const g = KEL.get(pState.groupId);
   const ss = sesiOfGroup(g.id);
   if(pState.sesiId && !allSesi().has(pState.sesiId)) pState.sesiId=null;
-  if(!pState.sesiId && ss.length) pState.sesiId = ss[ss.length-1].id;
 
   if(pState.selesai) return layarSelesai();
 
   let body;
   if(pState.baru){ body = formPertemuan(g); }
-  else if(!pState.sesiId){ body = `<div class="card-b">${emptyBox("Belum ada pertemuan untuk "+g.judul,"Tekan ‘Pertemuan baru’ untuk mulai mencatat.")}</div>`; }
+  else if(!pState.sesiId){
+    body = `<div class="card-b">${ss.length
+      ? emptyBox("Pilih pertemuan dulu","Buka daftar Pertemuan di atas untuk melihat dan mengisi presensi "+g.judul+", atau tekan ‘Pertemuan baru’ untuk mencatat pertemuan hari ini.")
+      : emptyBox("Belum ada pertemuan untuk "+g.judul,"Tekan ‘Pertemuan baru’ untuk mulai mencatat.")}</div>`;
+  }
   else { body = panelPresensi(g, allSesi().get(pState.sesiId)); }
 
   return `
@@ -280,7 +288,10 @@ function viewPresensi(){
       <div class="field"><label for="p-grp">${pState.program==="daily"?"Kelompok ekskul":"Kelas"}</label>
         <select id="p-grp">${groups.map(x=>`<option value="${x.id}"${x.id===g.id?" selected":""}>${esc(x.judul)}</option>`).join("")}</select></div>
       <div class="field"><label for="p-ses">Pertemuan</label>
-        <select id="p-ses"${ss.length?"":" disabled"}>${ss.length?ss.map(s=>`<option value="${s.id}"${s.id===pState.sesiId?" selected":""}>${esc(sesiLabel(s))}${s.program==="sabtu"?" · "+esc(s.ekskul):""}</option>`).join(""):'<option>— belum ada —</option>'}</select></div>
+        <select id="p-ses"${ss.length?"":" disabled"}>
+          <option value=""${pState.sesiId?"":" selected"}>${ss.length?"— pilih pertemuan —":"— belum ada —"}</option>
+          ${ss.map(s=>`<option value="${s.id}"${s.id===pState.sesiId?" selected":""}>${esc(sesiLabel(s))}${s.program==="sabtu"?" · "+esc(s.ekskul):""}</option>`).join("")}
+        </select></div>
       <div class="field"><label>&nbsp;</label><button class="btn gold" id="p-new">+ Pertemuan baru</button></div>
     </div>
   </div></section>
@@ -603,9 +614,9 @@ function bind(){
   on("#rf-prog","change",e=>{ringkasFilter.program=e.target.value;render()});
   on("#rf-bln","change",e=>{ringkasFilter.bulan=e.target.value;render()});
   // presensi
-  on("#p-prog","change",e=>{pState.program=e.target.value;pState.groupId=null;pState.sesiId=null;pState.baru=false;render()});
+  on("#p-prog","change",e=>{pState.program=e.target.value;pState.groupId=null;pState.sesiId=null;pState.baru=false;pState.konfirmHapus=false;render()});
   on("#p-grp","change",e=>{pState.groupId=e.target.value;pState.sesiId=null;pState.baru=false;pState.konfirmHapus=false;render()});
-  on("#p-ses","change",e=>{pState.sesiId=e.target.value;pState.konfirmHapus=false;render()});
+  on("#p-ses","change",e=>{pState.sesiId=e.target.value||null;pState.konfirmHapus=false;render()});
   on("#p-new","click",()=>{pState.baru=true;render()});
   on("#nb-cancel","click",()=>{pState.baru=false;render()});
   on("#nb-ok","click",buatPertemuan);
