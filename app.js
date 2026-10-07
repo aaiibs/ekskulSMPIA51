@@ -171,7 +171,7 @@ function barRow(name,t){
 function emptyBox(b,p){ return `<div class="empty"><b>${esc(b)}</b>${esc(p)}</div>`; }
 
 /* ---------- PRESENSI ---------- */
-let pState = {program:"daily", groupId:null, sesiId:null, baru:false};
+let pState = {program:"daily", groupId:null, sesiId:null, baru:false, konfirmHapus:false, catatanMurid:null};
 function viewPresensi(){
   const groups = DATA.kelompok.filter(g=>g.program===pState.program);
   if(!pState.groupId || !KEL.get(pState.groupId) || KEL.get(pState.groupId).program!==pState.program){
@@ -224,6 +224,11 @@ function panelPresensi(g, s){
   const t = tally(ang.map(m=>pres.get(m.id)).filter(Boolean));
   const meta = dbSesi.get(s.id) || {};
   const ro = canWrite===false;
+  if(!pState.catatanMurid || !ang.some(m=>m.id===pState.catatanMurid)) pState.catatanMurid = ang.length?ang[0].id:null;
+  const catatanTerpilih = (pres.get(pState.catatanMurid)||{}).c || "";
+  const daftarCatatan = ang.map(m=>({m:m, teks:(pres.get(m.id)||{}).c||""}))
+                           .filter(x=>x.teks)
+                           .sort((a,b)=>a.m.kelas.localeCompare(b.m.kelas)||a.m.nama.localeCompare(b.m.nama));
   return `
   <div class="card-h">
     <h2>${esc(sesiLabel(s))}</h2>
@@ -239,20 +244,28 @@ function panelPresensi(g, s){
       <span class="note" style="margin-left:auto">${ang.length} murid terdaftar</span>
     </div>
     ${ro?'<div class="hint">Akses Anda hanya membaca, jadi presensi di halaman ini tidak bisa diubah.</div>':
-      '<div class="row"><button class="btn ghost" id="pz-all">Tandai semua hadir</button><button class="btn ghost" id="pz-clear">Kosongkan</button></div>'}
+      `<div class="row"><button class="btn ghost" id="pz-all">Tandai semua hadir</button>
+        <button class="btn ghost" id="pz-clear">Kosongkan</button>
+        <button class="btn ghost bahaya" id="pz-del" style="margin-left:auto">Hapus pertemuan</button></div>`}
+    ${pState.konfirmHapus ? `<div class="konfirm">
+        <b>Hapus pertemuan ${esc(sesiLabel(s))}?</b>
+        <p>${t.total} baris presensi dan seluruh catatan pendampingan di pertemuan ini ikut terhapus. Tindakan ini tidak bisa dibatalkan.</p>
+        ${s.sumber==="spreadsheet"?'<p class="peringatan">Pertemuan ini berasal dari impor spreadsheet lama, bukan dibuat lewat situs.</p>':''}
+        <div class="row"><button class="btn bahaya-isi" id="pz-del-ya">Ya, hapus</button>
+          <button class="btn ghost" id="pz-del-batal">Batal</button></div>
+      </div>` : ''}
   </div>
   <div class="mlist">
     ${ang.map(m=>{
       const e = pres.get(m.id)||{s:"",c:""};
       return `<div class="mrow" data-m="${m.id}">
-        <div class="who"><b>${esc(m.nama)}</b><small>${m.kelas}</small></div>
+        <div class="who"><b>${esc(m.nama)}</b><small>${m.kelas}${e.c?' &middot; <span class="adacatatan">ada catatan</span>':''}</small></div>
         <div class="seg">${ST.map(([k,l])=>`<button class="${l.toLowerCase()}" data-st="${k}" aria-pressed="${e.s===k}" ${ro?"disabled":""} title="${STNAME[k]}">${l}</button>`).join("")}</div>
-        <div class="noteline"><input type="text" data-note="${m.id}" value="${esc(e.c)}" placeholder="Catatan pendampingan untuk ${esc(m.nama.split(" ")[0])} (opsional)" ${ro?"disabled":""}></div>
       </div>`;
     }).join("")}
   </div>
   <div class="card-b" style="border-top:1px solid var(--line)">
-    <h3 style="font-size:15px;margin-bottom:10px">Catatan pendampingan pertemuan</h3>
+    <h3 style="font-size:15px;margin-bottom:10px">Catatan pendampingan</h3>
     <div class="filters" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
       <div class="field"><label for="sm-pem">Pembina</label><input type="text" id="sm-pem" value="${esc(meta.pembina||"")}" ${ro?"disabled":""} placeholder="Nama pembina"></div>
       <div class="field"><label for="sm-mat">Materi / kegiatan</label><input type="text" id="sm-mat" value="${esc(meta.materi||"")}" ${ro?"disabled":""} placeholder="Misal: dasar komposisi warna"></div>
@@ -261,7 +274,27 @@ function panelPresensi(g, s){
       <div class="field"><label for="sm-ken">Kendala</label><textarea id="sm-ken" ${ro?"disabled":""} placeholder="Hal yang menghambat jalannya kegiatan">${esc(meta.kendala||"")}</textarea></div>
       <div class="field"><label for="sm-tdl">Tindak lanjut</label><textarea id="sm-tdl" ${ro?"disabled":""} placeholder="Yang akan dilakukan pekan depan">${esc(meta.tindakLanjut||"")}</textarea></div>
     </div>
-    <p class="note" style="margin-top:10px">Perubahan tersimpan otomatis${s.sumber==="spreadsheet"?" · data awal diimpor dari spreadsheet presensi":""}.</p>
+    <p class="note" style="margin-top:8px">Empat isian di atas berlaku untuk seluruh sesi. Tersimpan otomatis${s.sumber==="spreadsheet"?" &middot; data awal diimpor dari spreadsheet presensi":""}.</p>
+
+    ${ro?"":`<div class="catatan-blok">
+      <p class="eyebrow">Catatan untuk murid tertentu</p>
+      <div class="catatan-form">
+        <div class="field"><label for="cm-murid">Murid</label>
+          <select id="cm-murid">${ang.map(m=>`<option value="${m.id}"${m.id===pState.catatanMurid?" selected":""}>${esc(m.nama)} — ${m.kelas}</option>`).join("")}</select></div>
+        <div class="field"><label for="cm-teks">Catatan</label>
+          <textarea id="cm-teks" placeholder="Misal: belum bisa ikut penuh karena lomba, perlu pendampingan menyusul">${esc(catatanTerpilih)}</textarea></div>
+        <div class="field"><label>&nbsp;</label><button class="btn" id="cm-simpan">Simpan catatan</button></div>
+      </div>
+    </div>`}
+
+    ${daftarCatatan.length?`<div class="catatan-blok">
+      <p class="eyebrow">Catatan tersimpan di pertemuan ini (${daftarCatatan.length})</p>
+      ${daftarCatatan.map(c=>`<div class="histrow"><div>
+          <b>${esc(c.m.nama)}</b> <small>${c.m.kelas}</small>
+          <div style="margin-top:3px">${esc(c.teks)}</div></div>
+          ${ro?"":`<button class="btn ghost bahaya" data-hapus-catatan="${c.m.id}">Hapus</button>`}
+        </div>`).join("")}
+    </div>`:""}
   </div>`;
 }
 
@@ -424,13 +457,16 @@ function bind(){
   on("#rf-bln","change",e=>{ringkasFilter.bulan=e.target.value;render()});
   // presensi
   on("#p-prog","change",e=>{pState.program=e.target.value;pState.groupId=null;pState.sesiId=null;pState.baru=false;render()});
-  on("#p-grp","change",e=>{pState.groupId=e.target.value;pState.sesiId=null;pState.baru=false;render()});
-  on("#p-ses","change",e=>{pState.sesiId=e.target.value;render()});
+  on("#p-grp","change",e=>{pState.groupId=e.target.value;pState.sesiId=null;pState.baru=false;pState.konfirmHapus=false;render()});
+  on("#p-ses","change",e=>{pState.sesiId=e.target.value;pState.konfirmHapus=false;render()});
   on("#p-new","click",()=>{pState.baru=true;render()});
   on("#nb-cancel","click",()=>{pState.baru=false;render()});
   on("#nb-ok","click",buatPertemuan);
   on("#pz-all","click",()=>massal("hadir"));
   on("#pz-clear","click",()=>massal(""));
+  on("#pz-del","click",()=>{ pState.konfirmHapus=true; render(); });
+  on("#pz-del-batal","click",()=>{ pState.konfirmHapus=false; render(); });
+  on("#pz-del-ya","click",hapusPertemuan);
   document.querySelectorAll(".mrow [data-st]").forEach(b=>{
     b.addEventListener("click",()=>{
       const mid=b.closest(".mrow").dataset.m, st=b.dataset.st;
@@ -438,8 +474,16 @@ function bind(){
       tulisMurid(mid, (cur&&cur.s===st)?"":st, undefined);
     });
   });
-  document.querySelectorAll("[data-note]").forEach(inp=>{
-    inp.addEventListener("input",()=>debounce("n"+inp.dataset.note,()=>tulisMurid(inp.dataset.note,undefined,inp.value),700));
+  on("#cm-murid","change",e=>{ pState.catatanMurid=e.target.value; render(); });
+  on("#cm-simpan","click",()=>{
+    const mid=$("#cm-murid")?$("#cm-murid").value:null, el=$("#cm-teks");
+    if(!mid||!el) return;
+    tulisMurid(mid, undefined, el.value.trim());
+    toast(el.value.trim()?"Catatan disimpan":"Catatan dikosongkan");
+    render();
+  });
+  document.querySelectorAll("[data-hapus-catatan]").forEach(b=>{
+    b.addEventListener("click",()=>{ tulisMurid(b.dataset.hapusCatatan, undefined, ""); toast("Catatan dihapus"); render(); });
   });
   [["#sm-pem","pembina"],["#sm-mat","materi"],["#sm-ken","kendala"],["#sm-tdl","tindakLanjut"]].forEach(([sel,key])=>{
     on(sel,"input",e=>debounce("s"+key,()=>tulisSesi(pState.sesiId,{[key]:e.target.value}),700));
@@ -513,6 +557,26 @@ async function tulisSesi(sid, patch){
   const next=Object.assign({},cur,patch); dbSesi.set(sid,next);
   try{ await api("POST","simpanSesi",Object.assign({id:sid},patch)); }
   catch(err){ toast("Catatan belum tersimpan: "+err.message); }
+}
+
+async function hapusPertemuan(){
+  const sid = pState.sesiId; if(!sid) return;
+  const salinanSesi = allSesi().get(sid);
+  const salinanPres = presOf(sid);
+  // bersihkan di layar dulu supaya terasa responsif
+  dbSesi.delete(sid); seedSesi.delete(sid); dbPres.delete(sid); seedPres.delete(sid);
+  pState.sesiId = null; pState.konfirmHapus = false; render();
+  try{
+    await api("POST","hapusSesi",{id:sid});
+    toast("Pertemuan dihapus");
+    jadwalSegar(3000);
+  }catch(err){
+    // gagal di server -> kembalikan tampilan apa adanya
+    if(salinanSesi) seedSesi.set(sid, salinanSesi);
+    if(salinanPres.size){ const m={}; salinanPres.forEach((v,k)=>m[k]=v); dbPres.set(sid,{murid:m}); }
+    pState.sesiId = sid;
+    toast("Gagal menghapus: "+err.message); render();
+  }
 }
 
 async function buatPertemuan(){

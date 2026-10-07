@@ -110,7 +110,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 
 /* attendance list */
 .mlist{display:grid;gap:0}
-.mrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 16px;border-top:1px solid var(--line)}
 .mrow:first-child{border-top:0}
 .mrow .who{min-width:0}
 .mrow .who b{font-weight:600;font-size:14.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -121,8 +121,14 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .seg button[aria-pressed="true"]{color:#fff}
 .seg button.h[aria-pressed="true"]{background:var(--ok)} .seg button.i[aria-pressed="true"]{background:var(--izin)}
 .seg button.s[aria-pressed="true"]{background:var(--sakit)} .seg button.a[aria-pressed="true"]{background:var(--alpha)}
-.noteline{grid-column:1/-1;margin-top:2px}
-.noteline input{font-size:13px;padding:7px 10px;background:var(--surface-2);border-color:transparent}
+.adacatatan{color:var(--brand-ink);font-weight:600}
+.catatan-blok{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.catatan-blok .eyebrow{margin:0 0 10px}
+.catatan-form{display:grid;gap:12px;grid-template-columns:minmax(180px,230px) minmax(0,1fr) auto;align-items:start}
+.catatan-form textarea{min-height:58px}
+.catatan-form .btn{white-space:nowrap}
+@media (max-width:700px){.catatan-form{grid-template-columns:1fr}
+  .catatan-form .btn{width:100%}}
 
 /* tables */
 .tw{overflow-x:auto}
@@ -148,6 +154,14 @@ td .nmcell{white-space:normal;min-width:170px;display:block}
 .syncbar.kerja{color:var(--brand-ink);border-color:var(--brand-line);background:var(--brand-wash)}
 .syncbar.baik{color:var(--ok);border-color:var(--ok);background:var(--ok-bg)}
 .syncbar.buruk{color:var(--alpha);border-color:var(--alpha);background:var(--alpha-bg)}
+.btn.bahaya{color:var(--alpha);border-color:var(--alpha-bg)}
+.btn.bahaya:hover{background:var(--alpha-bg);border-color:var(--alpha)}
+.btn.bahaya-isi{background:var(--alpha);color:#fff}
+.btn.bahaya-isi:hover{background:#8E2A20}
+.konfirm{border:1px solid var(--alpha);background:var(--alpha-bg);border-radius:var(--r);padding:14px 16px;display:grid;gap:10px}
+.konfirm b{font-family:var(--display);font-size:15.5px;color:var(--alpha)}
+.konfirm p{margin:0;font-size:13px;color:var(--fg)}
+.konfirm .peringatan{font-weight:600;color:var(--alpha)}
 .srch{position:relative}
 .people{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
 .person{text-align:left;background:var(--surface-2);border:1px solid transparent;border-radius:10px;padding:10px 12px;cursor:pointer}
